@@ -7,10 +7,11 @@ type Rect = {
 };
 
 const MAX_FRAMES_PER_SECOND = 5;
-const ROUGHNESS = 5;
-const STROKE_WIDTH = 2;
+const ROUGHNESS = 3;
+const STROKE_WIDTH = 1;
 // max dom nodes before we disable animation for perf reasons
-const MAX_NODES_FOR_ANIMATION = 1000;
+const MAX_NODES_FOR_ANIMATION = 500;
+const SKETCH_OPACITY = 0.7;
 
 const dpr = window.devicePixelRatio;
 const root = document.body
@@ -19,15 +20,17 @@ const canvas = document.createElement('canvas');
 
 canvas.setAttribute('width', `${scrollWidth * dpr}`);
 canvas.setAttribute('height', `${scrollHeight * dpr}`);
-canvas.setAttribute('style', `
-    position: absolute;
+canvas.setAttribute(
+    'style',
+    `position: absolute;
     width: ${scrollWidth}px;
     height: ${scrollHeight}px;
     top: 0;
     left: 0;
     z-index: 10000;
     pointer-events: none;
-`);
+    opacity: ${SKETCH_OPACITY};`
+);
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore bundled externally
@@ -48,8 +51,7 @@ function render(time = 0) {
         requestAnimationFrame(render);
     }
 
-    // cap framerate at 5fps
-    if (time - lastRenderTime < 1000 / MAX_FRAMES_PER_SECOND) {
+    if (shouldAnimate && time - lastRenderTime < 1000 / MAX_FRAMES_PER_SECOND) {
         return;
     }
     ctx?.clearRect(0, 0, canvas.width, canvas.height);
@@ -64,23 +66,17 @@ function render(time = 0) {
 }
 
 function processDom(element: HTMLElement = root) {
-    if (element === canvas) {
-        return;
+    if (element.offsetParent !== null && element !== canvas) {
+        const { backgroundColor } = getComputedStyle(element);
+        const bbox = element.getBoundingClientRect();
+        rects.push({
+            x: bbox.x * dpr,
+            y: bbox.y * dpr,
+            width: bbox.width * dpr,
+            height: bbox.height * dpr,
+            fill: backgroundColor,
+        });
     }
-    if (element !== root) {
-        // TODO: avoid inline styles so this process can
-        // be undone easily to restore original page
-        element.setAttribute('style', 'opacity: 0;');
-    }
-    const { backgroundColor } = getComputedStyle(element);
-    const bbox = element.getBoundingClientRect();
-    rects.push({
-        x: bbox.x * dpr,
-        y: bbox.y * dpr,
-        width: bbox.width * dpr,
-        height: bbox.height * dpr,
-        fill: backgroundColor,
-    });
 
     for (let i = 0; i < element.children.length; i++) {
         processDom(element.children[i] as HTMLElement);

@@ -9,27 +9,27 @@
 
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
     var MAX_FRAMES_PER_SECOND = 5;
-    var ROUGHNESS = 5;
-    var STROKE_WIDTH = 2;
-    var MAX_NODES_FOR_ANIMATION = 1e3;
+    var ROUGHNESS = 3;
+    var STROKE_WIDTH = 1;
+    var MAX_NODES_FOR_ANIMATION = 500;
+    var SKETCH_OPACITY = 0.7;
     var dpr = window.devicePixelRatio;
     var root = document.body;
-    var {scrollWidth, scrollHeight} = root;
+    var { scrollWidth, scrollHeight } = root;
     var canvas = document.createElement("canvas");
     canvas.setAttribute("width", `${scrollWidth * dpr}`);
     canvas.setAttribute("height", `${scrollHeight * dpr}`);
-    canvas.setAttribute("style", `
-        position: absolute;
-        width: ${scrollWidth}px;
-        height: ${scrollHeight}px;
-        top: 0;
-        left: 0;
-        z-index: 10000;
-        pointer-events: none;
-    `);
+    canvas.setAttribute("style", `position: absolute;
+      width: ${scrollWidth}px;
+      height: ${scrollHeight}px;
+      top: 0;
+      left: 0;
+      z-index: 10000;
+      pointer-events: none;
+      opacity: ${SKETCH_OPACITY};`);
     var rc = rough.canvas(canvas);
     var ctx = canvas.getContext("2d");
     root.append(canvas);
@@ -42,7 +42,7 @@
         if (shouldAnimate) {
             requestAnimationFrame(render);
         }
-        if (time - lastRenderTime < 1e3 / MAX_FRAMES_PER_SECOND) {
+        if (shouldAnimate && time - lastRenderTime < 1e3 / MAX_FRAMES_PER_SECOND) {
             return;
         }
         ctx?.clearRect(0, 0, canvas.width, canvas.height);
@@ -56,21 +56,17 @@
         lastRenderTime = time;
     }
     function processDom(element = root) {
-        if (element === canvas) {
-            return;
+        if (element.offsetParent !== null && element !== canvas) {
+            const { backgroundColor } = getComputedStyle(element);
+            const bbox = element.getBoundingClientRect();
+            rects.push({
+                x: bbox.x * dpr,
+                y: bbox.y * dpr,
+                width: bbox.width * dpr,
+                height: bbox.height * dpr,
+                fill: backgroundColor
+            });
         }
-        if (element !== root) {
-            element.setAttribute("style", "opacity: 0;");
-        }
-        const {backgroundColor} = getComputedStyle(element);
-        const bbox = element.getBoundingClientRect();
-        rects.push({
-            x: bbox.x * dpr,
-            y: bbox.y * dpr,
-            width: bbox.width * dpr,
-            height: bbox.height * dpr,
-            fill: backgroundColor
-        });
         for (let i = 0; i < element.children.length; i++) {
             processDom(element.children[i]);
         }
