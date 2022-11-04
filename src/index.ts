@@ -1,5 +1,3 @@
-import rough from 'roughjs/bin/rough';
-
 type Rect = {
     x: number,
     y: number,
@@ -31,6 +29,8 @@ canvas.setAttribute('style', `
     pointer-events: none;
 `);
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore bundled externally
 const rc = rough.canvas(canvas);
 const ctx = canvas.getContext('2d');
 root.append(canvas);
